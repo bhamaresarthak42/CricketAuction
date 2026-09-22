@@ -21,7 +21,16 @@ export function AuthProvider({ children }) {
       setCurrentUser(user);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    // Fallback safety timer: ensure loading never hangs indefinitely
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   // Perform Login with Role & PIN Validation
@@ -83,7 +92,17 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4 font-sans text-slate-400">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 animate-bounce shadow-lg shadow-amber-500/10">
+            <span className="font-bold text-xl font-heading">C</span>
+          </div>
+          <div className="text-xs font-mono font-semibold tracking-wider uppercase text-amber-400 animate-pulse">
+            Verifying CricAuction Security Session...
+          </div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }
+

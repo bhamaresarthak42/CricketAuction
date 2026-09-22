@@ -355,6 +355,20 @@ export default function HostPage() {
   };
 
   // 7. Action: Clear Live Stage
+  const handleClearStage = async () => {
+    try {
+      await deleteDoc(doc(db, 'live_auction', 'current'));
+      try {
+        await set(ref(rtdb, 'live_auction'), null);
+      } catch (rtdbErr) {
+        console.warn("RTDB clear warning:", rtdbErr);
+      }
+      showToast("Live stage cleared!", "info");
+    } catch (error) {
+      showToast(`Failed to clear stage: ${error.message}`, "error");
+    }
+  };
+
   // 8. Action: Conclude & Close Auction Event
   const handleConcludeAuction = async () => {
     try {
