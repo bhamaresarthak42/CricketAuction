@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { ref, set, onValue } from 'firebase/database';
 import { formatCurrency, getDefaultPlayerImage, getDefaultTeamLogo } from '../utils/formatters';
+import AnalyticsModal from '../components/AnalyticsModal';
 import { 
   Gavel, 
   Radio, 
@@ -34,7 +35,8 @@ import {
   Sparkles,
   Trophy,
   PieChart,
-  Activity
+  Activity,
+  BarChart2
 } from 'lucide-react';
 
 export default function HostPage() {
@@ -58,6 +60,10 @@ export default function HostPage() {
   const [processingSell, setProcessingSell] = useState(false);
   const [processingUnsold, setProcessingUnsold] = useState(false);
 
+  // All players from Firestore for Analytics
+  const [allPlayers, setAllPlayers] = useState([]);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+
   // Auction Event Closure Modal
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
@@ -69,8 +75,16 @@ export default function HostPage() {
     setTimeout(() => setToast({ show: false, message: '', type: 'info' }), 4000);
   };
 
-  // 1. Subscribe to Firestore Collections: Teams, Upcoming Players, Unsold Players
+  // 1. Subscribe to Firestore Collections: Teams, Upcoming Players, Unsold Players, All Players
   useEffect(() => {
+    // Subscribe All Players for Analytics
+    const unsubAllPlayers = onSnapshot(
+      collection(db, 'players'),
+      (snapshot) => {
+        setAllPlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (err) => console.warn("All players listener error:", err)
+    );
     // Subscribe Teams for Live Dashboard
     const unsubTeams = onSnapshot(
       collection(db, 'teams'),
@@ -116,6 +130,7 @@ export default function HostPage() {
     );
 
     return () => {
+      unsubAllPlayers();
       unsubTeams();
       unsubUpcoming();
       unsubUnsold();
@@ -405,6 +420,14 @@ export default function HostPage() {
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowAnalytics(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 font-bold text-xs transition-all shadow-lg cursor-pointer"
+            >
+              <BarChart2 className="w-4 h-4 text-cyan-400" />
+              Analytics & Insights
+            </button>
+
             <button
               onClick={handleConcludeAuction}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-bold text-xs transition-all shadow-lg cursor-pointer"
@@ -844,6 +867,14 @@ export default function HostPage() {
           </div>
         </div>
       )}
+
+      {/* RICH REAL-TIME TOURNAMENT ANALYTICS MODAL */}
+      <AnalyticsModal
+        isOpen={showAnalytics}
+        onClose={() => setShowAnalytics(false)}
+        teams={teams}
+        players={allPlayers}
+      />
 
     </div>
   );

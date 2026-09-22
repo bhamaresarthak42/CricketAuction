@@ -9,12 +9,11 @@ export default function HomePage() {
       {/* Hero Banner */}
       <div className="text-center space-y-6 max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
-          <Flame className="w-4 h-4" /> Real-Time IPL Style Cricket Auction Platform
+          <Flame className="w-4 h-4" /> Universal Real-Time Cricket Auction Hub for All Leagues & Tournaments
         </div>
         
         <h1 className="text-4xl sm:text-6xl font-black tracking-tight font-heading text-slate-100">
-          Experience the <br />
-          <span className="gold-gradient-text">Live Cricket Auction</span>
+          CricAuction <span className="gold-gradient-text">Pro</span>
         </h1>
         
         <p className="text-slate-400 text-base sm:text-lg leading-relaxed">

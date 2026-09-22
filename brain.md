@@ -1,8 +1,8 @@
-# 🧠 Project Brain: Live Cricket Auction Platform
+# 🧠 Project Brain: Universal Live Cricket Auction Platform (CricAuction Pro)
 
 ## 🎯 Project Overview & Identity
-- **Name**: Real-Time IPL-Style Cricket Auction Platform
-- **Objective**: A multi-device, real-time web application to host live cricket auctions with synchronized bidding across browsers and mobile devices.
+- **Name**: CricAuction Pro - Real-Time Live Cricket Auction Platform
+- **Objective**: A universal multi-league, multi-event, real-time web application to host live cricket auctions with synchronized bidding across browsers and mobile devices. Suitable for IPL, Corporate Leagues, College Tournaments, and Club Competitions.
 - **GitHub Repository**: `https://github.com/bhamaresarthak42/CricketAuction.git`
 - **Hosting & Deployment**: Vercel (Auto-deploy on `git push origin main`) / Netlify Ready
 
@@ -13,11 +13,11 @@
 ### Frontend & UI System
 - **Core Framework**: React 18 + Vite 5 (Fast ESM HMR & production bundle builds)
 - **Styling**: Tailwind CSS (Dark broadcast aesthetics, glassmorphism, gold/emerald/cyan gradient highlights)
-- **Icons**: Lucide React (`Trophy`, `Gavel`, `Users`, `Database`, `Shield`, `ShieldCheck`, `Flame`, `Zap`, `Radio`, etc.)
+- **Icons**: Lucide React (`Trophy`, `Gavel`, `Users`, `Database`, `Shield`, `ShieldCheck`, `Flame`, `Zap`, `Radio`, `BarChart2`, `Calendar`, `Clock`, etc.)
 - **Routing**: React Router v6 (`/`, `/login`, `/admin`, `/host`, `/owner`, `/unauthorized`)
 
 ### Backend & Cloud Infrastructure (Firebase)
-- **Firebase Firestore**: Persistent database storing `teams` and `players` collections, plus primary fallback for `live_auction`.
+- **Firebase Firestore**: Persistent database storing `teams`, `players`, `auction_event/config`, and fallback for `live_auction`.
 - **Firebase Realtime Database (RTDB)**: Ephemeral WebSocket database for sub-second rapid live auction state pushes.
 - **Firebase Storage**: Bucket storage for team logos (`team_logos/`) and player pictures (`player_images/`).
 - **Firebase Anonymous Auth**: Role-Based Access Control (RBAC) credentials.
@@ -29,29 +29,53 @@
 
 ---
 
-## 🔐 Security, RBAC & Team Owner Isolation Lock
+## 📊 100% Free Rich Tournament Analytics Engine (`src/components/AnalyticsModal.jsx`)
+- **Purse Utilization Rate (%)**: Computes overall spent money vs total allocated budget across all franchise teams.
+- **Role-Wise Expenditure Distribution**: Calculates financial & count percentages spent on Batters, Bowlers, All-Rounders, and Wicket Keepers with dynamic colored progress bars.
+- **Market Price Inflation Index**: Calculates average player selling price relative to base price (`1.0x` to `25.0x` inflation).
+- **Overseas vs Domestic Slots**: Tracks foreign quota acquisition rates across teams.
+- **Top 5 Player Acquisitions**: Real-time leaderboard displaying the highest-paid players in the tournament.
+
+---
+
+## 📅 Tournament Schedule & Universal Rebranding Engine
+
+### Event Title & Time Scheduling (`src/pages/AdminPage.jsx`)
+- **Custom Event Title**: Admin can name any tournament (e.g. *Corporate Premier League 2026*, *College Championship Auction*).
+- **Start & End Time Scheduling**: Stores start and end timestamps in `doc(db, 'auction_event', 'config')`.
+- **Universal Rebranding**: Platform rebranded to **CricAuction Pro** for universal league compatibility.
+
+---
+
+## 🔐 Security, RBAC & Team Owner Session Lock
 
 ### User Authentication (`src/context/AuthContext.jsx`)
-- **Session Isolation**: Tab-isolated session storage (`ca_user_role`, `ca_user_team_id`, `ca_user_team_name`) allows multiple tabs on the same computer to represent different franchise teams without overwriting credentials.
+- **Session Isolation**: Tab-isolated session storage (`ca_user_role`, `ca_user_team_id`, `ca_user_team_name`).
 - **Role Credentials**:
   - **Admin**: Security PIN `1234`
   - **Host**: Security PIN `5678`
   - **Owner**: Select Franchise Team from dynamic Firestore list
-- **Graceful Auth Fallback**: `signInAnonymously(auth)` is wrapped in a try/catch block so that if Firebase Anonymous Auth is disabled in Firebase Console, PIN authentication continues seamlessly without throwing `auth/configuration-not-found`.
+- **Graceful Auth Fallback**: `signInAnonymously(auth)` wrapped in try/catch to fall back to session PIN auth cleanly.
 
 ### Team Owner Session Lock (`src/pages/OwnerPage.jsx`)
 - **Strict Isolation**: Once a Team Owner signs in for a specific franchise (e.g. *Chennai Super Kings*), their session is **LOCKED** to that team.
-- **Dropdown Disabling**: The team dropdown selector is replaced with a locked badge (`Playing Team (Session Locked)`).
+- **Dropdown Disabling**: Dropdown replaced with a locked badge (`Playing Team (Session Locked)`).
 - **Impersonation Prevention**: Team Owners CANNOT switch teams mid-session to inspect or place bids on behalf of rival franchises.
-
-### Route Guards (`src/components/ProtectedRoute.jsx`)
-- `ProtectedRoute` checks `userRole` and `allowedRoles`.
-- Unauthenticated users attempting to access `/admin`, `/host`, or `/owner` are redirected to `/login`.
-- Authenticated users attempting to access a route outside their permitted role are redirected to `/unauthorized`.
 
 ---
 
 ## 🗄️ Database Schemas (Source of Truth)
+
+### Firestore: `auction_event/config` Document
+```json
+{
+  "title": "String (e.g. Corporate Premier League 2026)",
+  "startTime": "String (ISO Date String)",
+  "endTime": "String (ISO Date String)",
+  "status": "String ('scheduled' | 'live' | 'completed')",
+  "updatedAt": "Timestamp"
+}
+```
 
 ### Firestore: `teams` Collection
 ```json
@@ -84,23 +108,6 @@
 }
 ```
 
-### Firestore & RTDB: `live_auction` Document / Node
-```json
-{
-  "player_id": "String",
-  "player_name": "String",
-  "player_role": "String",
-  "player_nationality": "String",
-  "player_image_url": "String",
-  "base_price": "Number",
-  "current_bid": "Number",
-  "highest_bidder_team_id": "String | null",
-  "highest_bidder_team_name": "String | null",
-  "status": "String ('bidding' | 'completed')",
-  "timestamp": "Number (Epoch MS - Used for LWW Conflict Resolution)"
-}
-```
-
 ---
 
 ## 🛑 Business Rules & Validation Engine
@@ -118,102 +125,6 @@
 
 ---
 
-## 📱 Page Features & Application Structure
-
-### 1. Home Page (`/`)
-- Broadcast hero banner introducing the platform.
-- Interactive Role Portal cards directing users to Admin, Host, or Owner login.
-
-### 2. Login Portal (`/login`)
-- Role selector cards: Admin (PIN: 1234), Host (PIN: 5678), Team Owner (Team selection dropdown).
-- Form inputs with inline validation and security feedback.
-
-### 3. Admin Console (`/admin`)
-- **Team Management**: Add new teams with budget in Crores, squad limit, and image file upload.
-- **Player Management**: Add new players with role, nationality, base price in Lakhs, and photo file upload.
-- **Live Cricket API Importer**: Integrates `fetchLiveCricketPlayers()` to fetch real cricket players via CricAPI / CricketData.org directly into Firestore.
-- **Quick Auto-Seed**: 1-click seeding of preset IPL teams (CSK, MI, RCB, KKR) and star players.
-- **🔄 Reset Season for New Auction Event**: 1-click engine that restores all team purses back to full budget, resets squad counts to 0, moves sold/unsold players back to `upcoming`, and clears stage for a fresh auction.
-- **Real-Time Deletion**: Delete teams or players with confirmation dialogs.
-
-### 4. Host Auctioneer Desk (`/host`)
-- **Live Ticker Banner**: Broadcast marquee displaying registered teams, upcoming count, unsold count, and stage status.
-- **Hammer Stage**: Initiate bidding for upcoming players or select specific players from the queue.
-- **🏆 Conclude & Close Auction Event**: 1-click action that locks the live stage across all clients and opens the **Tournament Broadcast Summary Report Modal** (showing total spending, unsold counts, and final franchise standings with print capability).
-- **Host Action Controls**:
-  - **Sell Player**: Triggers atomic Firestore transaction.
-  - **Mark Unsold**: Updates status to `unsold` and clears stage.
-  - **Clear Stage**: Manually resets stage state.
-- **Queues**:
-  - **Upcoming Queue**: Chronological list of upcoming players with 1-click hammer action.
-  - **Unsold Recall Queue**: Displays unsold players with a **"Recall to Auction"** button that resets status to `upcoming`.
-- **Franchise Standings Dashboard**: Real-time progress bars for purse utilization, squad filling rates, and overseas slots.
-
-### 5. Team Owner Bidding Console (`/owner`)
-- **Locked Franchise Team Badge**: Displays locked team badge for authenticated owners (`Playing Team (Session Locked)`).
-- **Live Team Metrics**: Real-time cards displaying remaining purse, squad count, and overseas count.
-- **Live Stage Display**: Shows player photo, role, nationality, base price, current highest bid, and winning team name.
-- **Dynamic Bidding Controls**:
-  - Quick Bid buttons: `+ ₹20 Lakhs`, `+ ₹50 Lakhs`, `+ ₹1 Crore`.
-  - Custom Bid input box with numeric Lakhs converter.
-  - Dynamic button disabling when team holds the highest bid or exceeds budget/roster constraints.
-- **My Squad Roster**:
-  - Live synchronized list of purchased players.
-  - Role filter tabs: All, Batters, Bowlers, All-Rounders, Keepers.
-  - Shows price paid for each player and total squad expenditure.
-
----
-
-## 🌐 Deployment & SPA Single Page Application Config
-
-### Netlify & Vercel SPA Routing Configuration
-- **`public/_redirects`**:
-  ```text
-  /*    /index.html   200
-  ```
-- **`vercel.json`**:
-  ```json
-  {
-    "rewrites": [
-      { "source": "/(.*)", "destination": "/index.html" }
-    ]
-  }
-  ```
-
-### Vercel Continuous Deployment (CI/CD)
-- **Repo Connection**: Connected to `bhamaresarthak42/CricketAuction.git` on `main` branch.
-- **Auto Deploy**: Every `git push origin main` triggers a 30-second automated Vercel production build.
-- **Public Visibility**: Vercel Authentication / Deployment Protection disabled for unrestricted multi-device access worldwide.
-- **Local Network Testing**: `npm run dev -- --host` for local WiFi network testing across physical smartphones and tablets.
-
----
-
-## 🐞 Major Bug Fixes & Audit Log
-
-1. **Missing `formatCurrency` in `LoginPage.jsx`**:
-   - *Symptom*: White/blank screen when clicking Admin, Host, or Owner links.
-   - *Fix*: Imported `formatCurrency` from `../utils/formatters.js`.
-2. **`auth/configuration-not-found` Error**:
-   - *Symptom*: Login failed when Anonymous Auth was disabled in Firebase console.
-   - *Fix*: Wrapped `signInAnonymously(auth)` in try/catch to fall back to session PIN auth cleanly.
-3. **Cross-Tab Live Bidding Sync Issue**:
-   - *Symptom*: Live auction state was only written to RTDB, which failed when RTDB rules were locked.
-   - *Fix*: Implemented Dual-Sync writing to both Firestore (`doc(db, 'live_auction', 'current')`) and RTDB.
-4. **Multi-Team Outbidding Locking Issue**:
-   - *Symptom*: Team A couldn't bid after Team B placed a higher bid due to stale listener overwrites.
-   - *Fix*: Implemented Last-Write-Wins (LWW) timestamp comparison in `setLiveAuction`.
-5. **Windows File Handle `EPERM` Lock**:
-   - *Symptom*: `'vite' is not recognized as an internal or external command` after failed `npm i`.
-   - *Fix*: Killed stray `node.exe` processes and re-ran `npm install` cleanly.
-6. **Team Owner Impersonation Prevention**:
-   - *Symptom*: Team Owners could switch teams in the dropdown mid-session.
-   - *Fix*: Locked `selectedTeamId` to `userTeamId` and replaced dropdown with a locked badge.
-7. **Auction Conclusion & Season Reset**:
-   - *Symptom*: No clean way to close an auction or reset for a new event.
-   - *Fix*: Built `handleConcludeAuction` with summary report modal on `/host` and `handleResetSeason` on `/admin`.
-
----
-
 ## 🚀 Progress Tracker & Status
 
 - [x] Step 1: Initialize Vite + React + Tailwind + Firebase Config & Routing.
@@ -226,5 +137,8 @@
 - [x] Step 8: Team Owner Session Locking & Impersonation Prevention.
 - [x] Step 9: Host Conclude & Close Auction Event with Broadcast Summary Modal.
 - [x] Step 10: Admin 1-Click Season Reset Engine for New Auction Events.
-- [x] Step 11: Production Build Verification & SPA Routing (`_redirects` & `vercel.json`).
-- [x] Step 12: GitHub Integration & Vercel Automated CI/CD Deployment setup.
+- [x] Step 11: Universal Rebranding to CricAuction Pro for All Leagues.
+- [x] Step 12: Tournament Schedule Engine (Start/End Date & Time configuration).
+- [x] Step 13: 100% Free Rich Analytics Dashboard Modal (`AnalyticsModal.jsx`).
+- [x] Step 14: Production Build Verification & SPA Routing (`_redirects` & `vercel.json`).
+- [x] Step 15: GitHub Integration & Vercel Automated CI/CD Deployment setup.

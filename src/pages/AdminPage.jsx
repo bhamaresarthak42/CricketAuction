@@ -5,6 +5,7 @@ import {
   addDoc, 
   deleteDoc, 
   updateDoc,
+  setDoc,
   doc, 
   onSnapshot, 
   query, 
@@ -32,7 +33,13 @@ import {
   Search,
   Filter,
   Globe,
-  Download
+  Download,
+  Calendar,
+  Clock,
+  BarChart2,
+  TrendingUp,
+  PieChart,
+  Trophy
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -72,6 +79,15 @@ export default function AdminPage() {
   const [fetchingApi, setFetchingApi] = useState(false);
   const [playerFilterStatus, setPlayerFilterStatus] = useState('all');
 
+  // Event Schedule & Title State
+  const [eventConfig, setEventConfig] = useState({
+    title: 'Premier Cricket Auction 2026',
+    startTime: '',
+    endTime: '',
+    status: 'live'
+  });
+  const [savingConfig, setSavingConfig] = useState(false);
+
   // Trigger Toast Notification
   const showNotification = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -80,6 +96,16 @@ export default function AdminPage() {
 
   // Real-time Firestore Listeners
   useEffect(() => {
+    // Event Config Listener
+    const unsubConfig = onSnapshot(
+      doc(db, 'auction_event', 'config'),
+      (snap) => {
+        if (snap.exists()) {
+          setEventConfig(snap.data());
+        }
+      },
+      (err) => console.warn("Event config snapshot error:", err)
+    );
     // Teams Listener
     const qTeams = query(collection(db, 'teams'), orderBy('name', 'asc'));
     const unsubTeams = onSnapshot(
@@ -314,6 +340,23 @@ export default function AdminPage() {
     }
   };
 
+  // Save Tournament Event Title & Schedule Config
+  const handleSaveEventConfig = async (e) => {
+    e.preventDefault();
+    setSavingConfig(true);
+    try {
+      await setDoc(doc(db, 'auction_event', 'config'), {
+        ...eventConfig,
+        updatedAt: serverTimestamp()
+      });
+      showNotification("📅 Tournament Event Title & Schedule saved successfully!");
+    } catch (error) {
+      showNotification(`Failed to save event schedule: ${error.message}`, 'error');
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
   // Delete Team Document
   const handleDeleteTeam = async (teamId, teamName) => {
     if (!window.confirm(`Are you sure you want to delete "${teamName}"?`)) return;
@@ -392,6 +435,71 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* TOURNAMENT EVENT SCHEDULE & REBRANDING CARD */}
+      <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-purple-500/30 space-y-4 shadow-xl">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
+          <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-100 font-heading">
+              Tournament Event Settings & Schedule
+            </h2>
+            <p className="text-xs text-slate-400">Set custom event title (Universal League / Corporate / College) and start & end date/time</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveEventConfig} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div className="sm:col-span-3">
+            <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
+              Auction Tournament Title *
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Corporate Premier League 2026 Mega Auction"
+              value={eventConfig.title || ''}
+              onChange={(e) => setEventConfig({ ...eventConfig, title: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-purple-400"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
+              Start Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              value={eventConfig.startTime || ''}
+              onChange={(e) => setEventConfig({ ...eventConfig, startTime: e.target.value })}
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-purple-400 font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
+              End Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              value={eventConfig.endTime || ''}
+              onChange={(e) => setEventConfig({ ...eventConfig, endTime: e.target.value })}
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-purple-400 font-mono"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={savingConfig}
+              className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-slate-100 font-bold text-xs transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 cursor-pointer"
+            >
+              {savingConfig ? 'Saving Schedule...' : 'Save Event Schedule'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* LIVE CRICKET API IMPORTER CARD */}

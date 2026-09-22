@@ -40,10 +40,10 @@ export default function Navbar() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-heading font-extrabold text-lg sm:text-xl tracking-wider text-slate-100 uppercase">
-                  Auction<span className="gold-gradient-text">Master</span>
+                  Cric<span className="gold-gradient-text">Auction Pro</span>
                 </span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                  IPL LIVE
+                  LIVE AUCTION
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium tracking-tight hidden sm:block">Real-Time Cricket Auction Hub</p>
