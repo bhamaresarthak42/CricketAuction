@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { db, storage } from '../firebase';
+import { db, rtdb, storage } from '../firebase';
 import { 
   collection, 
   addDoc, 
   deleteDoc, 
+  updateDoc,
   doc, 
   onSnapshot, 
   query, 
   orderBy, 
   serverTimestamp 
 } from 'firebase/firestore';
+import { ref as rtdbRef, set } from 'firebase/database';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { formatCurrency, getDefaultPlayerImage, getDefaultTeamLogo } from '../utils/formatters';
 import { PRESET_TEAMS, PRESET_PLAYERS } from '../utils/presetData';
@@ -272,6 +274,46 @@ export default function AdminPage() {
     }
   };
 
+  // 1-Click Reset Season for New Auction Event
+  const [resetting, setResetting] = useState(false);
+  const handleResetSeason = async () => {
+    if (!window.confirm("Are you sure you want to reset the season for a NEW auction event? This will restore all team purses, reset squad counts to 0, move all sold players back to upcoming, and clear the live stage.")) return;
+
+    setResetting(true);
+    try {
+      // 1. Reset team budgets & rosters
+      for (const t of teams) {
+        await updateDoc(doc(db, 'teams', t.id), {
+          current_purse: t.total_budget || 1000000000,
+          squad_count: 0,
+          overseas_count: 0
+        });
+      }
+
+      // 2. Reset player statuses to upcoming
+      for (const p of players) {
+        await updateDoc(doc(db, 'players', p.id), {
+          status: 'upcoming',
+          sold_to_team_id: null,
+          sold_price: null
+        });
+      }
+
+      // 3. Clear live stage
+      await deleteDoc(doc(db, 'live_auction', 'current'));
+      try {
+        await set(rtdbRef(rtdb, 'live_auction'), null);
+      } catch (err) {}
+
+      showNotification("🔄 Season Reset Complete! Team purses restored and players reset to upcoming pool!", "success");
+    } catch (error) {
+      console.error("Reset error:", error);
+      showNotification(`Failed to reset season: ${error.message}`, "error");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   // Delete Team Document
   const handleDeleteTeam = async (teamId, teamName) => {
     if (!window.confirm(`Are you sure you want to delete "${teamName}"?`)) return;
@@ -330,14 +372,25 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <button
-            onClick={handleAutoSeed}
-            disabled={seeding}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-            {seeding ? 'Seeding Demo Data...' : '⚡ Quick Auto-Seed Demo Data'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleResetSeason}
+              disabled={resetting}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-500/40 text-purple-300 font-bold text-xs transition-all shadow-lg cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              {resetting ? 'Resetting Season...' : '🔄 Reset Season for New Auction'}
+            </button>
+
+            <button
+              onClick={handleAutoSeed}
+              disabled={seeding}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              {seeding ? 'Seeding Demo Data...' : '⚡ Quick Auto-Seed Demo Data'}
+            </button>
+          </div>
         </div>
       </div>
 

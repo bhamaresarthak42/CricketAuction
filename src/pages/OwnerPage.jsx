@@ -14,6 +14,7 @@ import {
   CheckCircle2, 
   Zap,
   Shield,
+  ShieldCheck,
   ChevronDown,
   Flame,
   Radio,
@@ -58,8 +59,12 @@ export default function OwnerPage() {
     setTimeout(() => setToast({ show: false, message: '', type: 'error' }), 4000);
   };
 
-  // Handle Team Selection Change
+  // Handle Team Selection Change (Locked for Authenticated Owners)
   const handleTeamChange = (newTeamId) => {
+    if (userTeamId) {
+      showNotification("Your security session is locked to your authenticated Franchise Team!", "warning");
+      return;
+    }
     setSelectedTeamId(newTeamId);
     sessionStorage.setItem('ca_user_team_id', newTeamId);
     const teamObj = teams.find(t => t.id === newTeamId);
@@ -323,14 +328,24 @@ export default function OwnerPage() {
             </p>
           </div>
 
-          {/* SELECT TEAM DROPDOWN */}
+          {/* SELECT TEAM / LOCKED TEAM BADGE */}
           <div className="w-full md:w-72 space-y-1.5">
             <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              Playing Team (Tab Session) *
+              Playing Team {userTeamId ? '(Session Locked)' : '(Tab Choice)'} *
             </label>
             {loadingTeams ? (
               <div className="text-xs text-slate-500 animate-pulse">Loading teams...</div>
+            ) : userTeamId ? (
+              <div className="w-full px-4 py-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 font-bold text-sm flex items-center justify-between shadow-lg shadow-emerald-500/10">
+                <div className="flex items-center gap-2 truncate">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="truncate">{selectedTeam ? selectedTeam.name : (userTeamName || 'Assigned Franchise Team')}</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider shrink-0">
+                  LOCKED
+                </span>
+              </div>
             ) : (
               <select
                 value={selectedTeamId}

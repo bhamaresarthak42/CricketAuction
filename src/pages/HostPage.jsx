@@ -58,6 +58,9 @@ export default function HostPage() {
   const [processingSell, setProcessingSell] = useState(false);
   const [processingUnsold, setProcessingUnsold] = useState(false);
 
+  // Auction Event Closure Modal
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+
   // Action status toast
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
 
@@ -337,18 +340,20 @@ export default function HostPage() {
   };
 
   // 7. Action: Clear Live Stage
-  const handleClearStage = async () => {
+  // 8. Action: Conclude & Close Auction Event
+  const handleConcludeAuction = async () => {
     try {
-      await deleteDoc(doc(db, 'live_auction', 'current'));
+      const closedData = { status: 'completed', timestamp: Date.now() };
+      await setDoc(doc(db, 'live_auction', 'current'), closedData);
       try {
-        await set(ref(rtdb, 'live_auction'), null);
-      } catch (rtdbErr) {
-        console.warn("RTDB clear warning:", rtdbErr);
+        await set(ref(rtdb, 'live_auction'), closedData);
+      } catch (err) {
+        console.warn("RTDB close warning:", err);
       }
-      setLiveAuction(null);
-      showToast("Live stage cleared", "info");
+      setShowSummaryModal(true);
+      showToast("🏆 Tournament Auction Concluded & Closed!", "success");
     } catch (error) {
-      showToast(`Failed to clear stage: ${error.message}`, "error");
+      showToast(`Failed to conclude auction: ${error.message}`, "error");
     }
   };
 
@@ -379,11 +384,11 @@ export default function HostPage() {
           <span>•</span>
           <span>Unsold Queue: <strong className="text-rose-400">{unsoldPlayers.length} Players</strong></span>
           <span>•</span>
-          <span>Current Hammer: <strong className="text-emerald-400">{liveAuction ? liveAuction.player_name : 'Stage Empty'}</strong></span>
+          <span>Current Stage: <strong className="text-emerald-400">{liveAuction ? (liveAuction.status === 'completed' ? 'AUCTION CLOSED' : liveAuction.player_name) : 'Stage Empty'}</strong></span>
         </div>
       </div>
 
-      {/* Host Controller Header */}
+      {/* Host Controller Header Banner */}
       <div className="relative overflow-hidden rounded-2xl glass-panel p-6 sm:p-8 border border-amber-500/20 shadow-2xl">
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
@@ -400,10 +405,13 @@ export default function HostPage() {
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
-            <span className="px-3.5 py-2 rounded-xl bg-amber-950/80 border border-amber-800/50 text-amber-300 text-xs font-semibold flex items-center gap-2 shadow-lg shadow-amber-500/10">
-              <Radio className="w-4 h-4 text-amber-400 animate-pulse" />
-              RTDB Live Room Active
-            </span>
+            <button
+              onClick={handleConcludeAuction}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-bold text-xs transition-all shadow-lg cursor-pointer"
+            >
+              <Trophy className="w-4 h-4 text-rose-400" />
+              Conclude & Close Auction
+            </button>
 
             <button
               onClick={() => handleBringNextPlayer()}
@@ -760,6 +768,82 @@ export default function HostPage() {
           </div>
         )}
       </div>
+
+      {/* TOURNAMENT BROADCAST SUMMARY MODAL */}
+      {showSummaryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl"></div>
+
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  <Trophy className="w-7 h-7" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-extrabold text-slate-100 font-heading">
+                    Auction Concluded & Summary
+                  </h2>
+                  <p className="text-xs text-slate-400">Official Tournament Auction Broadcast Report</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowSummaryModal(false)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Close Report
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10 font-mono">
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Franchises</span>
+                <span className="text-2xl font-black text-amber-400">{teams.length}</span>
+              </div>
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Unsold Queue</span>
+                <span className="text-2xl font-black text-rose-400">{unsoldPlayers.length} Players</span>
+              </div>
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Auction Status</span>
+                <span className="text-lg font-extrabold text-emerald-400 uppercase">CLOSED</span>
+              </div>
+            </div>
+
+            <div className="space-y-3 relative z-10">
+              <h3 className="text-sm font-bold text-slate-200 font-heading uppercase tracking-wider">
+                Final Franchise Standings & Roster Counts
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {teams.map(t => (
+                  <div key={t.id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center gap-2.5">
+                      <img src={t.logo_url || getDefaultTeamLogo(t.name)} alt={t.name} className="w-6 h-6 rounded-md object-cover" />
+                      <span className="font-bold text-slate-200">{t.name}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-slate-400">
+                      <span>Squad: <strong className="text-blue-400">{t.squad_count || 0}/{t.max_squad_size || 25}</strong></span>
+                      <span>Remaining Purse: <strong className="text-emerald-400">{formatCurrency(t.current_purse)}</strong></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between relative z-10">
+              <p className="text-[11px] text-slate-400">To start a new auction season, go to Admin Console and click "Reset Season".</p>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all shadow-lg cursor-pointer"
+              >
+                Print Summary Report
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

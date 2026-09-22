@@ -13,7 +13,7 @@
 ### Frontend & UI System
 - **Core Framework**: React 18 + Vite 5 (Fast ESM HMR & production bundle builds)
 - **Styling**: Tailwind CSS (Dark broadcast aesthetics, glassmorphism, gold/emerald/cyan gradient highlights)
-- **Icons**: Lucide React (`Trophy`, `Gavel`, `Users`, `Database`, `Shield`, `Flame`, `Zap`, `Radio`, etc.)
+- **Icons**: Lucide React (`Trophy`, `Gavel`, `Users`, `Database`, `Shield`, `ShieldCheck`, `Flame`, `Zap`, `Radio`, etc.)
 - **Routing**: React Router v6 (`/`, `/login`, `/admin`, `/host`, `/owner`, `/unauthorized`)
 
 ### Backend & Cloud Infrastructure (Firebase)
@@ -29,7 +29,7 @@
 
 ---
 
-## 🔐 Security & Role-Based Access Control (RBAC)
+## 🔐 Security, RBAC & Team Owner Isolation Lock
 
 ### User Authentication (`src/context/AuthContext.jsx`)
 - **Session Isolation**: Tab-isolated session storage (`ca_user_role`, `ca_user_team_id`, `ca_user_team_name`) allows multiple tabs on the same computer to represent different franchise teams without overwriting credentials.
@@ -38,6 +38,11 @@
   - **Host**: Security PIN `5678`
   - **Owner**: Select Franchise Team from dynamic Firestore list
 - **Graceful Auth Fallback**: `signInAnonymously(auth)` is wrapped in a try/catch block so that if Firebase Anonymous Auth is disabled in Firebase Console, PIN authentication continues seamlessly without throwing `auth/configuration-not-found`.
+
+### Team Owner Session Lock (`src/pages/OwnerPage.jsx`)
+- **Strict Isolation**: Once a Team Owner signs in for a specific franchise (e.g. *Chennai Super Kings*), their session is **LOCKED** to that team.
+- **Dropdown Disabling**: The team dropdown selector is replaced with a locked badge (`Playing Team (Session Locked)`).
+- **Impersonation Prevention**: Team Owners CANNOT switch teams mid-session to inspect or place bids on behalf of rival franchises.
 
 ### Route Guards (`src/components/ProtectedRoute.jsx`)
 - `ProtectedRoute` checks `userRole` and `allowedRoles`.
@@ -91,7 +96,7 @@
   "current_bid": "Number",
   "highest_bidder_team_id": "String | null",
   "highest_bidder_team_name": "String | null",
-  "status": "String ('bidding')",
+  "status": "String ('bidding' | 'completed')",
   "timestamp": "Number (Epoch MS - Used for LWW Conflict Resolution)"
 }
 ```
@@ -128,11 +133,13 @@
 - **Player Management**: Add new players with role, nationality, base price in Lakhs, and photo file upload.
 - **Live Cricket API Importer**: Integrates `fetchLiveCricketPlayers()` to fetch real cricket players via CricAPI / CricketData.org directly into Firestore.
 - **Quick Auto-Seed**: 1-click seeding of preset IPL teams (CSK, MI, RCB, KKR) and star players.
+- **🔄 Reset Season for New Auction Event**: 1-click engine that restores all team purses back to full budget, resets squad counts to 0, moves sold/unsold players back to `upcoming`, and clears stage for a fresh auction.
 - **Real-Time Deletion**: Delete teams or players with confirmation dialogs.
 
 ### 4. Host Auctioneer Desk (`/host`)
-- **Live Ticker Banner**: Broadcast marquee displaying registered teams, upcoming count, unsold count, and live player.
+- **Live Ticker Banner**: Broadcast marquee displaying registered teams, upcoming count, unsold count, and stage status.
 - **Hammer Stage**: Initiate bidding for upcoming players or select specific players from the queue.
+- **🏆 Conclude & Close Auction Event**: 1-click action that locks the live stage across all clients and opens the **Tournament Broadcast Summary Report Modal** (showing total spending, unsold counts, and final franchise standings with print capability).
 - **Host Action Controls**:
   - **Sell Player**: Triggers atomic Firestore transaction.
   - **Mark Unsold**: Updates status to `unsold` and clears stage.
@@ -143,7 +150,7 @@
 - **Franchise Standings Dashboard**: Real-time progress bars for purse utilization, squad filling rates, and overseas slots.
 
 ### 5. Team Owner Bidding Console (`/owner`)
-- **Franchise Team Selector**: Tab-specific dropdown selector storing team state in `sessionStorage`.
+- **Locked Franchise Team Badge**: Displays locked team badge for authenticated owners (`Playing Team (Session Locked)`).
 - **Live Team Metrics**: Real-time cards displaying remaining purse, squad count, and overseas count.
 - **Live Stage Display**: Shows player photo, role, nationality, base price, current highest bid, and winning team name.
 - **Dynamic Bidding Controls**:
@@ -198,6 +205,12 @@
 5. **Windows File Handle `EPERM` Lock**:
    - *Symptom*: `'vite' is not recognized as an internal or external command` after failed `npm i`.
    - *Fix*: Killed stray `node.exe` processes and re-ran `npm install` cleanly.
+6. **Team Owner Impersonation Prevention**:
+   - *Symptom*: Team Owners could switch teams in the dropdown mid-session.
+   - *Fix*: Locked `selectedTeamId` to `userTeamId` and replaced dropdown with a locked badge.
+7. **Auction Conclusion & Season Reset**:
+   - *Symptom*: No clean way to close an auction or reset for a new event.
+   - *Fix*: Built `handleConcludeAuction` with summary report modal on `/host` and `handleResetSeason` on `/admin`.
 
 ---
 
@@ -210,5 +223,8 @@
 - [x] Step 5: Build `/owner` - Live bidding interface with strict validation rules and role-filtered squad roster.
 - [x] Step 6: Step 8 Security, Auth Context, RBAC, PIN Protection, and Protected Routes.
 - [x] Step 7: Dual-Sync Realtime Bidding Engine & LWW Conflict Resolution.
-- [x] Step 8: Production Build Verification & SPA Routing (`_redirects` & `vercel.json`).
-- [x] Step 9: GitHub Integration & Vercel Automated CI/CD Deployment setup.
+- [x] Step 8: Team Owner Session Locking & Impersonation Prevention.
+- [x] Step 9: Host Conclude & Close Auction Event with Broadcast Summary Modal.
+- [x] Step 10: Admin 1-Click Season Reset Engine for New Auction Events.
+- [x] Step 11: Production Build Verification & SPA Routing (`_redirects` & `vercel.json`).
+- [x] Step 12: GitHub Integration & Vercel Automated CI/CD Deployment setup.
